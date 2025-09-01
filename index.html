@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowState - Intelligent To-Do List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --gunmetal: #30343fff;
+            --ghost-white: #fafaffff;
+            --periwinkle: #e4d9ffff;
+            --delft-blue: #273469ff;
+            --space-cadet: #1e2749ff;
+            
+            --primary: var(--delft-blue);
+            --primary-light: var(--periwinkle);
+            --primary-dark: var(--space-cadet);
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --background: var(--ghost-white);
+            --surface: #ffffff;
+            --text: var(--gunmetal);
+            --text-light: #6c757d;
+            --border: #dee2e6;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        .dark-theme {
+            --background: var(--space-cadet);
+            --surface: var(--gunmetal);
+            --text: var(--ghost-white);
+            --text-light: #adb5bd;
+            --border: #404040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex: 1;
+            gap: 30px;
+        }
+
+        header {
+            background-color: var(--surface);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #FFD2FC;
+        }
+
+        .quote {
+            font-style: italic;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .main-content {
+            flex: 7;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .chatbot-section {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        input, button {
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        input {
+            flex: 1;
+            background-color: var(--surface);
+            color: var(--text);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(39, 52, 105, 0.2);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        button.delete {
+            background-color: transparent;
+            color: var(--danger);
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        button.delete:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-card {
+            background-color: var(--surface);
+            padding: 18px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.3s ease;
+            transition: var(--transition);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        .task-card.deleting {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        .task-checkbox {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .task-checkbox.checked {
+            background-color: var(--success);
+            border-color: var(--success);
+        }
+
+        .task-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+        }
+
+        .task-description {
+            flex: 1;
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        .task-description.completed {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background-color: var(--primary-light);
+            color: var(--gunmetal);
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background-color: #DDFFF7;
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .dark-theme .bot-message {
+            background-color: var(--primary-dark);
+            color: var(--ghost-white);
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid var(--border);
+            background-color: var(--surface);
+        }
+
+        .chat-input input {
+            flex: 1;
+            border-radius: 20px;
+            padding: 12px 18px;
+        }
+
+        .chat-input button {
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--surface);
+            color: var(--text);
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-light);
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .chatbot-section {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <div class="logo">To-Do List</div>
+            <div class="quote">today wat hav?</div>
+        </div>
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="input-section">
+                <input type="text" id="taskInput" placeholder="Add a new task...">
+                <button id="addTaskBtn">Add</button>
+            </div>
+
+            <div class="task-list" id="taskList">
+                <!-- Tasks will be dynamically added here -->
+            </div>
+        </div>
+
+        <div class="chatbot-section">
+            <div class="chat-header">AI Assistant</div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">Hello! I'm your productivity assistant. How can I help you today?</div>
+                <div class="message bot-message">You can ask me to add, complete, or delete tasks. Try saying "Add a task to call mom" or "Show me my tasks".</div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Message the assistant...">
+                <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <footer>
+        &copy; Wen's To-Do List App
+    </footer>
+
+    <script>
+        // DOM Elements
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const taskList = document.getElementById('taskList');
+        const chatInput = document.getElementById('chatInput');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const toast = document.getElementById('toast');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // State
+        let tasks = [];
+        let isDarkTheme = false;
+
+        // Theme Toggle
+        themeToggle.addEventListener('click', () => {
+            isDarkTheme = !isDarkTheme;
+            document.body.classList.toggle('dark-theme', isDarkTheme);
+            themeToggle.textContent = isDarkTheme ? '☀️' : '🌙';
+        });
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Simulated API Functions
+        function fetchTasks() {
+            const storedTasks = localStorage.getItem('tasks');
+            if (storedTasks) {
+                tasks = JSON.parse(storedTasks);
+            }
+            renderTasks();
+        }
+
+        function addTask(description) {
+            if (!description.trim()) {
+                showToast('Please enter a task description', 'error');
+                return;
+            }
+            
+            const newTask = {
+                id: Date.now(),
+                description: description,
+                completed: false,
+                date_created: new Date().toISOString()
+            };
+            
+            tasks.push(newTask);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            
+            taskInput.value = '';
+            renderTasks();
+            showToast('Task added successfully');
+            addChatMessage('Bot', `I've added "${description}" to your to-do list.`);
+        }
+
+        function toggleTaskCompletion(id) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex !== -1) {
+                tasks[taskIndex].completed = !tasks[taskIndex].completed;
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                
+                const status = tasks[taskIndex].completed ? 'completed' : 'marked as incomplete';
+                showToast(`Task ${status}`);
+            }
+        }
+
+        function deleteTask(id) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex !== -1) {
+                const taskDescription = tasks[taskIndex].description;
+                tasks.splice(taskIndex, 1);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                showToast('Task deleted successfully');
+                addChatMessage('Bot', `Deleted task "${taskDescription}".`);
+            }
+        }
+
+        // Render tasks to the DOM
+        function renderTasks() {
+            taskList.innerHTML = '';
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<div class="empty-state">No tasks yet. Add a task to get started!</div>';
+                return;
+            }
+            
+            tasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'task-card';
+                taskElement.dataset.id = task.id;
+                
+                taskElement.innerHTML = `
+                    <div class="task-checkbox ${task.completed ? 'checked' : ''}"></div>
+                    <div class="task-description ${task.completed ? 'completed' : ''}">${task.description}</div>
+                    <div class="task-actions">
+                        <button class="delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                
+                taskList.appendChild(taskElement);
+                
+                // Add event listeners
+                const checkbox = taskElement.querySelector('.task-checkbox');
+                const deleteBtn = taskElement.querySelector('.delete');
+                
+                checkbox.addEventListener('click', () => toggleTaskCompletion(task.id));
+                deleteBtn.addEventListener('click', () => {
+                    taskElement.classList.add('deleting');
+                    setTimeout(() => deleteTask(task.id), 300);
+                });
+            });
+        }
+
+        // Chat functionality
+        function addChatMessage(sender, message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender.toLowerCase()}-message`;
+            messageElement.textContent = message;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Enhanced task finding function with multiple matching strategies
+        function findTaskByReference(command) {
+            const lowerCommand = command.toLowerCase();
+            
+            // 1. Try position reference (task 1, item 2, #3)
+            const positionMatch = command.match(/(?:task|item)?\s*#?(\d+)/i);
+            if (positionMatch) {
+                const position = parseInt(positionMatch[1]);
+                if (position > 0 && position <= tasks.length) {
+                    return tasks[position - 1];
+                }
+            }
+            
+            // 2. Try quoted description matching ("buy milk")
+            const quotedMatch = command.match(/"([^"]+)"|'([^']+)'/);
+            if (quotedMatch) {
+                const searchText = (quotedMatch[1] || quotedMatch[2]).toLowerCase();
+                const foundTask = tasks.find(task => 
+                    task.description.toLowerCase().includes(searchText)
+                );
+                if (foundTask) return foundTask;
+            }
+            
+            // 3. Try keyword extraction for task descriptions
+            const actionWords = ['complete', 'delete', 'remove', 'mark', 'finish', 'done', 'task', 'item'];
+            const words = command.split(/\s+/);
+            const relevantWords = words.filter(word => 
+                !actionWords.includes(word.toLowerCase()) && 
+                word.length > 2
+            );
+            
+            if (relevantWords.length > 0) {
+                // Find task with the most matching keywords
+                let bestMatch = null;
+                let bestScore = 0;
+                
+                tasks.forEach(task => {
+                    const taskWords = task.description.toLowerCase().split(/\s+/);
+                    let score = 0;
+                    
+                    relevantWords.forEach(word => {
+                        if (taskWords.some(taskWord => taskWord.includes(word.toLowerCase()))) {
+                            score++;
+                        }
+                    });
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = task;
+                    }
+                });
+                
+                if (bestMatch && bestScore >= Math.min(2, relevantWords.length)) {
+                    return bestMatch;
+                }
+            }
+            
+            return null;
+        }
+
+        // Enhanced AI processing with better NLP
+        async function simulateAIProcessing(command) {
+            const lowerCommand = command.toLowerCase();
+            
+            // Add task
+            if (lowerCommand.includes('add') || lowerCommand.includes('create') || lowerCommand.includes('new')) {
+                let taskDescription = '';
+                
+                // Try multiple patterns to extract task description
+                const patterns = [
+                    /(?:add|create|new)(?:\s+(?:a|the))?\s+(?:task\s+)?(?:to\s+)?(?:"([^"]+)"|'([^']+)'|(.+))/i,
+                    /(?:add|create|new)(?:\s+(?:a|the))?\s+(?:task\s+)?(?:called|named|to)\s+(?:"([^"]+)"|'([^']+)'|(.+))/i,
+                    /(?:add|create|new)\s+(.+)/i
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = command.match(pattern);
+                    if (match) {
+                        taskDescription = match[1] || match[2] || match[3];
+                        if (taskDescription) break;
+                    }
+                }
+                
+                if (taskDescription) {
+                    return {
+                        function: "addTask",
+                        parameters: { description: taskDescription.trim() }
+                    };
+                }
+            }
+            
+            // View tasks
+            if (lowerCommand.includes('show') || lowerCommand.includes('view') || 
+                lowerCommand.includes('list') || lowerCommand.includes('what') || 
+                lowerCommand.includes('task')) {
+                return {
+                    function: "viewTasks",
+                    parameters: {}
+                };
+            }
+            
+            // Additional patterns for complete/delete commands
+            const actionPatterns = [
+                // Pattern: "complete the task about groceries"
+                /(complete|finish|mark)\s+(?:the\s+)?task\s+(?:about|regarding|for)\s+(.+)/i,
+                
+                // Pattern: "delete my meeting task"
+                /(delete|remove)\s+(?:my\s+)?(.+?)\s+task/i,
+                
+                // Pattern: "mark the third task as done"
+                /(complete|mark)\s+(?:the\s+)?(\w+)\s+(?:task|item)\s+(?:as\s+)?done/i,
+                
+                // Pattern: "remove item number 2"
+                /(delete|remove)\s+(?:item|task)\s+(?:number\s+)?(\d+)/i
+            ];
+            
+            for (const pattern of actionPatterns) {
+                const match = command.match(pattern);
+                if (match) {
+                    const action = match[1].toLowerCase();
+                    const reference = match[2];
+                    
+                    const task = findTaskByReference(reference);
+                    if (task) {
+                        return {
+                            function: action.includes('delete') || action.includes('remove') ? "deleteTask" : "completeTask",
+                            parameters: { task_id: task.id }
+                        };
+                    }
+                }
+            }
+            
+            // Complete task
+            if (lowerCommand.includes('complete') || lowerCommand.includes('mark') || 
+                lowerCommand.includes('done') || lowerCommand.includes('finish')) {
+                
+                const task = findTaskByReference(command);
+                if (task) {
+                    return {
+                        function: "completeTask",
+                        parameters: { task_id: task.id }
+                    };
+                }
+                
+                // Try position-based matching as fallback
+                const taskIdMatch = command.match(/(?:task|item)?\s*#?(\d+)/i);
+                if (taskIdMatch && taskIdMatch[1]) {
+                    const position = parseInt(taskIdMatch[1]);
+                    if (position > 0 && position <= tasks.length) {
+                        return {
+                            function: "completeTask",
+                            parameters: { task_id: tasks[position - 1].id }
+                        };
+                    }
+                }
+            }
+            
+            // Delete task
+            if (lowerCommand.includes('delete') || lowerCommand.includes('remove') || 
+                lowerCommand.includes('get rid of') || lowerCommand.includes('erase')) {
+                
+                const task = findTaskByReference(command);
+                if (task) {
+                    return {
+                        function: "deleteTask",
+                        parameters: { task_id: task.id }
+                    };
+                }
+                
+                // Try position-based matching as fallback
+                const taskIdMatch = command.match(/(?:task|item)?\s*#?(\d+)/i);
+                if (taskIdMatch && taskIdMatch[1]) {
+                    const position = parseInt(taskIdMatch[1]);
+                    if (position > 0 && position <= tasks.length) {
+                        return {
+                            function: "deleteTask",
+                            parameters: { task_id: tasks[position - 1].id }
+                        };
+                    }
+                }
+            }
+            
+            // Default response for unrecognized commands
+            return {
+                function: null,
+                parameters: {}
+            };
+        }
+
+        // AI Function Call Processing
+        async function processChatCommand(command) {
+            try {
+                // Show thinking indicator
+                addChatMessage('Bot', "Thinking...");
+                
+                // This would be replaced with an actual API call to your AI service
+                // For demonstration, we'll simulate the AI response
+                const aiResponse = await simulateAIProcessing(command);
+                
+                // Remove thinking message
+                chatMessages.removeChild(chatMessages.lastChild);
+                
+                if (aiResponse.function === "addTask") {
+                    addTask(aiResponse.parameters.description);
+                } 
+                else if (aiResponse.function === "viewTasks") {
+                    if (tasks.length === 0) {
+                        addChatMessage('Bot', 'You have no tasks in your list.');
+                    } else {
+                        const incompleteTasks = tasks.filter(task => !task.completed);
+                        const completedTasks = tasks.filter(task => task.completed);
+                        
+                        let response = '';
+                        
+                        if (incompleteTasks.length > 0) {
+                            response += `You have ${incompleteTasks.length} task${incompleteTasks.length !== 1 ? 's' : ''} to do:\n`;
+                            response += incompleteTasks.map((task, index) => 
+                                `${index + 1}. ${task.description}`
+                            ).join('\n');
+                        }
+                        
+                        if (completedTasks.length > 0) {
+                            if (response) response += '\n\n';
+                            response += `You've completed ${completedTasks.length} task${completedTasks.length !== 1 ? 's' : ''}:\n`;
+                            response += completedTasks.map((task, index) => 
+                                `${index + 1}. ${task.description}`
+                            ).join('\n');
+                        }
+                        
+                        addChatMessage('Bot', response);
+                    }
+                }
+                else if (aiResponse.function === "completeTask") {
+                    const taskId = aiResponse.parameters.task_id;
+                    if (taskId) {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            if (!task.completed) {
+                                toggleTaskCompletion(taskId);
+                                addChatMessage('Bot', `Marked "${task.description}" as complete.`);
+                            } else {
+                                addChatMessage('Bot', `"${task.description}" is already completed.`);
+                            }
+                        } else {
+                            addChatMessage('Bot', `I couldn't find that task.`);
+                        }
+                    } else {
+                        addChatMessage('Bot', "I need to know which task to complete.");
+                    }
+                }
+                else if (aiResponse.function === "deleteTask") {
+                    const taskId = aiResponse.parameters.task_id;
+                    if (taskId) {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            deleteTask(taskId);
+                            addChatMessage('Bot', `Deleted task "${task.description}".`);
+                        } else {
+                            addChatMessage('Bot', `I couldn't find that task.`);
+                        }
+                    } else {
+                        addChatMessage('Bot', "I need to know which task to delete.");
+                    }
+                }
+                else {
+                    addChatMessage('Bot', "I'm not sure how to help with that. You can ask me to add, complete, or delete tasks.");
+                }
+            } catch (error) {
+                console.error("Error processing command:", error);
+                // Remove thinking message if it exists
+                if (chatMessages.lastChild && chatMessages.lastChild.textContent === "Thinking...") {
+                    chatMessages.removeChild(chatMessages.lastChild);
+                }
+                addChatMessage('Bot', "Sorry, I encountered an error processing your request.");
+            }
+        }
+
+        // Event Listeners
+        addTaskBtn.addEventListener('click', () => addTask(taskInput.value));
+        taskInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask(taskInput.value);
+        });
+
+        sendMessageBtn.addEventListener('click', () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                addChatMessage('User', message);
+                chatInput.value = '';
+                processChatCommand(message);
+            }
+        });
+
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const message = chatInput.value.trim();
+                if (message) {
+                    addChatMessage('User', message);
+                    chatInput.value = '';
+                    processChatCommand(message);
+                }
+            }
+        });
+
+        // Initialize
+        fetchTasks();
+    </script>
+</body>
+</html>
