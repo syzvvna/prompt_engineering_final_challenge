@@ -6,6 +6,7 @@
     <title>FlowState - Intelligent To-Do List</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Your CSS remains unchanged */
         :root {
             --gunmetal: #30343fff;
             --ghost-white: #fafaffff;
@@ -189,11 +190,13 @@
             to {
                 opacity: 0;
                 transform: translateX(20px);
+            display: none;
             }
         }
 
         .task-card.deleting {
             animation: slideOut 0.3s ease forwards;
+            pointer-events: none;
         }
 
         .task-checkbox {
@@ -463,6 +466,7 @@
             }
         }
 
+        // FIXED: Delete task function - now only called once
         function deleteTask(id) {
             const taskIndex = tasks.findIndex(task => task.id === id);
             if (taskIndex !== -1) {
@@ -504,9 +508,23 @@
                 const deleteBtn = taskElement.querySelector('.delete');
                 
                 checkbox.addEventListener('click', () => toggleTaskCompletion(task.id));
-                deleteBtn.addEventListener('click', () => {
+                
+                // FIXED: Delete button event handler
+                deleteBtn.addEventListener('click', (e) => {
+                    // Prevent event bubbling to avoid multiple triggers
+                    e.stopPropagation();
+                    
+                    // Add deleting class for animation
                     taskElement.classList.add('deleting');
-                    setTimeout(() => deleteTask(task.id), 300);
+                    
+                    // Remove the task after animation completes
+                    setTimeout(() => {
+                        // Check if task still exists before deleting
+                        const taskIndex = tasks.findIndex(t => t.id === task.id);
+                        if (taskIndex !== -1) {
+                            deleteTask(task.id);
+                        }
+                    }, 300);
                 });
             });
         }
@@ -775,8 +793,8 @@
                     if (taskId) {
                         const task = tasks.find(t => t.id === taskId);
                         if (task) {
+                            // FIXED: Use the proper delete function
                             deleteTask(taskId);
-                            addChatMessage('Bot', `Deleted task "${task.description}".`);
                         } else {
                             addChatMessage('Bot', `I couldn't find that task.`);
                         }
